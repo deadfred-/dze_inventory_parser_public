@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<config>
+  <DB>
+    <ip>localhost</ip>
+    <port>3306</port>
+    <database>dayz_epoch</database>
+    <username>dayz_user</username>
+    <password>xxxxx</password>
+  </DB>
+  <Output>
+    <PreserveRawInventory>False</PreserveRawInventory>
+    <!-- OutputType Must be XML or CSV -->
+    <OutputType>CSV</OutputType>    
+  </Output>
+  <RedFlagList>
+    <Items>
+      <!-- Classname is object you want to search for, value in brackets is qty to flag on -->
+      <Item ClassName="ItemComboLock">8</Item>
+      <Item ClassName="ItemBriefcase100oz">75</Item>
+      <Item ClassName="ItemTopaz">1</Item>
+      <Item ClassName="ItemObsidian">6</Item>
+      <Item ClassName="ItemSapphire">6</Item>
+      <Item ClassName="ItemAmethyst">1</Item>
+      <Item ClassName="ItemEmerald">1</Item>
+      <Item ClassName="ItemCitrine">1</Item>
+      <Item ClassName="ItemRuby">1</Item>
+      <Item ClassName="metal_floor_kit">25</Item>
+      <Item ClassName="cinder_wall_kit">25</Item>
+      <Item ClassName="cinder_door_kit">25</Item>
+      <Item ClassName="cinder_garage_kit">25</Item>
+      <Item ClassName="ChainSaw">2</Item>
+      <Item ClassName="ChainSawB">2</Item>
+      <Item ClassName="ChainSawG">2</Item>
+      <Item ClassName="ChainSawP">2</Item>
+      <Item ClassName="ChainSawR">2</Item>
+    </Items>
+  </RedFlagList>
+</config>
