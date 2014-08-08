@@ -1,21 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<config>
+<config ServerName="Napf">
   <DB>
     <ip>localhost</ip>
     <port>3306</port>
     <database>dayz_epoch</database>
-    <username>dayz_user</username>
-    <password>xxxxx</password>
+    <username>dayz</username>
+    <password>xxxx</password>
   </DB>
   <Output>
-    <PreserveRawInventory>False</PreserveRawInventory>
+    <!-- If UseRedFlatList is False, Count every single item in DB -->
+    <UseRedFlagList>False</UseRedFlagList>
     <!-- OutputType Must be XML or CSV -->
-    <OutputType>CSV</OutputType>    
+    <OutputType>CSV</OutputType>
+    <PreserveRawInventory>False</PreserveRawInventory>
+    <!-- Requires PreserveRawInventory set to false For the following Options! -->
+    <DrawGraph>True</DrawGraph>
+    <DrawGraphLimitRecords>10</DrawGraphLimitRecords>
+
   </Output>
   <RedFlagList>
     <Items>
       <!-- Classname is object you want to search for, value in brackets is qty to flag on -->
-      <Item ClassName="ItemComboLock">8</Item>
       <Item ClassName="ItemBriefcase100oz">75</Item>
       <Item ClassName="ItemTopaz">1</Item>
       <Item ClassName="ItemObsidian">6</Item>
