@@ -12,6 +12,9 @@ using MySql.Data.Common;
 using System.Data;
 using System.IO;
 using System.Xml.Serialization;
+using System.Windows.Forms.DataVisualization.Charting;
+using System.Drawing;
+
 
 namespace dze_inventory_parser
 {
@@ -20,6 +23,8 @@ namespace dze_inventory_parser
         public static int Main(string[] args)
         {
             Dictionary<string, string> ArgPairs = new Dictionary<string, string>();
+
+
 
             // Draw some neat graphics!
             Console.BackgroundColor = ConsoleColor.Black;
@@ -71,7 +76,6 @@ namespace dze_inventory_parser
             }
 #endif
 
-
             // master list of objects
             List<DZObject> masterObjectList = new List<DZObject>();
 
@@ -83,25 +87,30 @@ namespace dze_inventory_parser
             MySqlConnection conn = new MySqlConnection(connStr);
             MySqlCommand cmd = new MySqlCommand();
             MySqlDataReader rdr;
+
             string queryString = "SELECT objectUID, ObjectID, worldspace, classname, characterID, inventory FROM object_data OD WHERE 1=1 and OD.inventory NOT LIKE '[[[],[]],[[],[]],[[],[]]]' AND OD.inventory NOT LIKE '[]'";
 
-            // ad our bad items to query string. We don't need to query for items not in the bad list.
-            string appendQuery = " AND ( ";
-            int queryCounter = 0;
-            foreach (Item badItem in badItems)
+            if (cfg.useRedFlagList)
             {
-                if (queryCounter < 1)
+                // ad our bad items to query string. We don't need to query for items not in the bad list.
+                string appendQuery = " AND ( ";
+                int queryCounter = 0;
+                foreach (Item badItem in badItems)
                 {
-                    appendQuery += string.Format(" od.inventory like '%{0}%' ", badItem.className.ToString());
+                    if (queryCounter < 1)
+                    {
+                        appendQuery += string.Format(" od.inventory like '%{0}%' ", badItem.className.ToString());
+                    }
+                    else
+                    {
+                        appendQuery += string.Format(" OR od.inventory like '%{0}%' ", badItem.className.ToString());
+                    }
+                    queryCounter++;
                 }
-                else
-                {
-                    appendQuery += string.Format(" OR od.inventory like '%{0}%' ", badItem.className.ToString());
-                }
-                queryCounter++;
+                queryString += appendQuery;
+                queryString += ")";
             }
-            queryString += appendQuery;
-            queryString += ")";
+
 
             try
             {
@@ -145,7 +154,7 @@ namespace dze_inventory_parser
             }
 
             // if we have objects parse them
-            Console.WriteLine("Objects Found:\t\t{0}", masterObjectList.Count());
+            Console.WriteLine("DB Objects Found:\t\t{0}", masterObjectList.Count());
 
             if (masterObjectList.Count() > 0)
             {
@@ -168,59 +177,70 @@ namespace dze_inventory_parser
 
             int c = 0;
 
-            foreach (DZObject obj in masterObjectList)
+            if (cfg.useRedFlagList)
             {
-                c++;
-                Console.Title = (string.Format("Checking parsed item: {0}", c));
 
-                // make sure we have stuff in our obj
-                if (obj.inventory.magazineItems.Count() > 0 && obj.inventory.weaponItems.Count() > 0)
+                foreach (DZObject obj in masterObjectList)
                 {
-                    // create temp holding obj
-                    DZObject tmpObj = new DZObject();
+                    c++;
+                    Console.Title = (string.Format("Checking parsed item: {0}", c));
 
-                    tmpObj.characterID = obj.characterID;
-                    tmpObj.className = obj.className;
-                    tmpObj.objectID = obj.objectID;
-                    tmpObj.objectUID = obj.objectUID;
-                    tmpObj.worldSpace = obj.worldSpace;
-                    if (cfg.preserveRawInventory)
+                    // make sure we have stuff in our obj
+                    if (obj.inventory.magazineItems.Count() > 0 && obj.inventory.weaponItems.Count() > 0)
                     {
-                        tmpObj.rawInventory = obj.rawInventory;
-                    }
+                        // create temp holding obj
+                        DZObject tmpObj = new DZObject();
 
-                    // Check to see if our mags show up in the bad list and if they are above the limit
-                    var badMagItems = from m in obj.inventory.magazineItems
-                                      join b in badItems on m.className equals b.className
-                                      where m.count >= b.count
-                                      select m;
+                        tmpObj.characterID = obj.characterID;
+                        tmpObj.className = obj.className;
+                        tmpObj.objectID = obj.objectID;
+                        tmpObj.objectUID = obj.objectUID;
+                        tmpObj.worldSpace = obj.worldSpace;
+                        if (cfg.preserveRawInventory)
+                        {
+                            tmpObj.rawInventory = obj.rawInventory;
+                        }
 
-                    // add our badMagItems to our temp obj
-                    foreach (Item record in badMagItems)
-                    {
-                        tmpObj.inventory.magazineItems.Add(record);
-                    }
+                        // Check to see if our mags show up in the bad list and if they are above the limit
+                        var badMagItems = from m in obj.inventory.magazineItems
+                                          join b in badItems on m.className equals b.className
+                                          where m.count >= b.count
+                                          select m;
 
-                    // Check to see if our weapons show up in the bad list and if they are above the limit
-                    var badWeapItems = from m in obj.inventory.weaponItems
-                                       join b in badItems on m.className equals b.className
-                                       where m.count >= b.count
-                                       select m;
+                        // add our badMagItems to our temp obj
+                        foreach (Item record in badMagItems)
+                        {
+                            tmpObj.inventory.magazineItems.Add(record);
+                        }
 
-                    // add our badWeapons to our temp obj
-                    foreach (Item record in badWeapItems)
-                    {
-                        tmpObj.inventory.weaponItems.Add(record);
-                    }
+                        // Check to see if our weapons show up in the bad list and if they are above the limit
+                        var badWeapItems = from m in obj.inventory.weaponItems
+                                           join b in badItems on m.className equals b.className
+                                           where m.count >= b.count
+                                           select m;
 
-                    // if our tmp obj contains item records, then there are flags, add it to our master list
-                    if (tmpObj.inventory.magazineItems.Count() > 0 || tmpObj.inventory.weaponItems.Count() > 0)
-                    {
-                        suspiciousObjects.Add(tmpObj);
+                        // add our badWeapons to our temp obj
+                        foreach (Item record in badWeapItems)
+                        {
+                            tmpObj.inventory.weaponItems.Add(record);
+                        }
+
+                        // if our tmp obj contains item records, then there are flags, add it to our master list
+                        if (tmpObj.inventory.magazineItems.Count() > 0 || tmpObj.inventory.weaponItems.Count() > 0)
+                        {
+                            suspiciousObjects.Add(tmpObj);
+                        }
                     }
                 }
+
             }
-            Console.WriteLine("Suspicious Objects:\t{0}", suspiciousObjects.Count());
+            else
+            {
+                // grab everything...         
+                suspiciousObjects = masterObjectList;
+            }
+
+            Console.WriteLine("Suspicious DB Objects:\t{0}", suspiciousObjects.Count());
 
             // check to see if we have suspicious items and log to file
             if (suspiciousObjects.Count() > 0)
@@ -264,9 +284,128 @@ namespace dze_inventory_parser
                         break;
                 }
             }
+
+
+            
+            if (cfg.drawGraph)
+            {
+                // generate ds
+                DataSet ds = new DataSet();
+                DataTable dt = new DataTable();
+
+                dt.Columns.Add("ClassName", typeof(string));
+                dt.Columns.Add("Quantity", typeof(int));
+
+                Dictionary<string, int> countsOfObjs = new Dictionary<string, int>();
+                countsOfObjs = GetCountsOfAllObjects(suspiciousObjects);
+
+                // order our list.
+                var sortedObjs = from entry in countsOfObjs 
+                                 orderby entry.Value descending 
+                                 select entry;
+
+                // get the top 10 records
+                var top10Objs = sortedObjs.Take(cfg.drawGraphLimitRecords);
+
+
+                foreach (KeyValuePair<string, int> obj in top10Objs)
+                {
+                    DataRow dr = dt.NewRow();
+
+                    dr[0] = obj.Key + "\n" + obj.Value.ToString();
+                    dr[1] = obj.Value;
+
+                    dt.Rows.Add(dr);
+                }
+
+                ds.Tables.Add(dt);
+
+                // create the chart
+                Chart chart = new Chart();
+                chart.DataSource = ds.Tables[0];
+                chart.Width = 1024;
+                chart.Height = 768;
+                    
+
+                // define series
+                Series serie1 = new Series();
+                serie1.Name = "Serie1";
+                serie1.XValueMember = "ClassName";
+                serie1.YValueMembers = "Quantity";
+                serie1.ChartType = SeriesChartType.Pie;
+
+                
+
+                // define legend
+                Legend legend = new Legend();
+                legend.Name = "Legend1";
+
+                serie1.Legend = "Legend1";
+                //serie1.LegendText = serie1.XValueMember;
+
+                // add legend
+                chart.Legends.Add(legend);
+
+                // add series to chart
+                chart.Series.Add(serie1);
+                
+                // define chartarea
+                ChartArea ca = new ChartArea();
+                ca.Name = "CA1";
+                ca.AxisX = new Axis();
+                ca.AxisY = new Axis();                
+                ca.Area3DStyle.Enable3D = true;
+                
+
+                //add ca
+                chart.ChartAreas.Add(ca);
+
+                // databind 
+                chart.DataBind();
+
+                // save result
+                string chartName = string.Format("{0}.png",cfg.dbDatabase);
+                chart.SaveImage(chartName, ChartImageFormat.Png);
+            }
             // program is done.
             return 0;
         }
+
+
+        public static Dictionary<string, int> GetCountsOfAllObjects(List<DZObject> objList)
+        {
+            Dictionary<string, int> returnValue = new Dictionary<string, int>();
+
+            int objCounter = 0;
+            foreach (DZObject dzObj in objList)
+            {
+                objCounter++;
+                // combine the items into one list to simplify processing
+                List<Item> items = new List<Item>();
+                items.AddRange(dzObj.inventory.weaponItems);
+                items.AddRange(dzObj.inventory.magazineItems);
+                items.AddRange(dzObj.inventory.backpackItems);
+
+                // parse lines for combined items
+                int itemCounter = 0;
+                foreach (Item dzItem in items)
+                {
+                    Console.Title = string.Format("Counting Items.  Obj: {0} item: {1}",objCounter.ToString(), itemCounter.ToString());
+
+                    try
+                    {
+                        returnValue.Add(dzItem.className, dzItem.count);
+                    }
+                    catch (Exception ex)
+                    {
+                        returnValue[dzItem.className] = returnValue[dzItem.className] + dzItem.count;
+                    }
+                   itemCounter++;
+                }
+            }
+            return returnValue;
+        }
+
 
         public static List<string> ConvertDZObjectsToString(List<DZObject> objList, Config cfg)
         {

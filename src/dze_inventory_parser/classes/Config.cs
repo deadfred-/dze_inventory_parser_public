@@ -9,6 +9,9 @@ namespace dze_inventory_parser.classes
 {
     public class Config
     {
+        // TODO: add multi db support
+        // track our db's we wish to use 
+        public string serverName { get; set; }
 
         // db config properties
         public string dbIP { get; set; }
@@ -24,7 +27,11 @@ namespace dze_inventory_parser.classes
             CSV            
         }
         public bool preserveRawInventory { get; set; }
+        
         public outputTypes selectedOutputType { get; set; }
+        public bool useRedFlagList { get; set; }
+        public bool drawGraph { get; set; }
+        public int drawGraphLimitRecords { get; set; }
 
         // red flag item properties
         public List<Item> redFlagItems = new List<Item>();
@@ -78,8 +85,17 @@ namespace dze_inventory_parser.classes
                         switch (optNode.Name)
                         {
 
+                            case "UseRedFlagList":
+                                this.useRedFlagList = Convert.ToBoolean(optNode.InnerText.ToString());
+                                break;
                             case "PreserveRawInventory":
                                 this.preserveRawInventory = Convert.ToBoolean(optNode.InnerText.ToString());
+                                break;
+                            case "DrawGraph":
+                                this.drawGraph = Convert.ToBoolean(optNode.InnerText.ToString());
+                                break;
+                            case "DrawGraphLimitRecords":
+                                this.drawGraphLimitRecords = Convert.ToInt32(optNode.InnerText.ToString());
                                 break;
                             case "OutputType":
                                 switch (optNode.InnerText.ToUpper().ToString())
